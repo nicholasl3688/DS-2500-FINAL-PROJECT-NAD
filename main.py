@@ -3,6 +3,7 @@ import statsmodels.api as sm
 from scipy.stats import pearsonr
 
 
+# Centralize the column names used across the analysis so they are easy to reuse and update.
 DATE_COLUMN = "observation_date"
 TARGET_COLUMN = "housing_price_index_pct_change"
 PREDICTOR_COLUMNS = [
@@ -10,6 +11,7 @@ PREDICTOR_COLUMNS = [
     "unemployment_rate_pct_change",
     "consumer_confidence_pct_change",
 ]
+# Use cleaner display labels when printing tables to the terminal.
 DISPLAY_NAMES = {
     "housing_price_index_pct_change": "Housing Price Index",
     "delinquency_rate_pct_change": "Delinquency Rate",
@@ -19,6 +21,7 @@ DISPLAY_NAMES = {
 
 
 def load_quarterly_series(path, raw_value_column, renamed_value_column):
+    # Load one quarterly dataset, convert the date column, and standardize the metric name.
     df = pd.read_csv(path)
     df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN])
 
@@ -30,6 +33,8 @@ def load_quarterly_series(path, raw_value_column, renamed_value_column):
 
 
 def build_analysis_dataframe():
+    # Load each quarterly percent-change series and rename the raw FRED-style columns
+    # to analysis-friendly names that we can reference consistently later.
     housing_price_index_df = load_quarterly_series(
         "Housing Price Index.csv",
         "USSTHPI_PCH",
@@ -51,6 +56,8 @@ def build_analysis_dataframe():
         "consumer_confidence_pct_change",
     )
 
+    # Merge the four datasets by quarter so every row represents the same time period
+    # across housing prices, delinquency, unemployment, and consumer confidence.
     analysis_df = housing_price_index_df.merge(
         delinquency_df,
         on=DATE_COLUMN,
@@ -69,6 +76,8 @@ def build_analysis_dataframe():
 
 
 def print_summary_stats(df):
+    # Print the summary statistics section and compute the core descriptive metrics
+    # for the housing index and each predictor variable.
     print("\nSUMMARY STATISTICS")
     print("-" * 80)
 
@@ -89,6 +98,8 @@ def print_summary_stats(df):
 
 
 def print_correlation_analysis(df):
+    # Print Pearson correlations between each predictor and the housing price index
+    # so we can see the strength and direction of each pairwise relationship.
     print("\nPEARSON CORRELATION ANALYSIS")
     print("-" * 80)
     print(
@@ -112,6 +123,8 @@ def print_correlation_analysis(df):
 
 
 def print_regression_analysis(df):
+    # Run a multiple linear regression with housing price change as the outcome
+    # and the three economic indicators as the explanatory variables.
     print("\nREGRESSION ANALYSIS")
     print("-" * 80)
 
@@ -120,6 +133,8 @@ def print_regression_analysis(df):
 
     model = sm.OLS(y, X).fit()
 
+    # Collect the most important regression outputs for each parameter so the
+    # printed results focus on coefficient direction, magnitude, and significance.
     coefficient_rows = []
     for parameter_name in model.params.index:
         label = "Intercept" if parameter_name == "const" else DISPLAY_NAMES[parameter_name]
@@ -138,6 +153,7 @@ def print_regression_analysis(df):
 
 
 def main():
+    # Build the combined quarterly dataset once, then run each part of the analysis report.
     analysis_df = build_analysis_dataframe()
 
     print("HOUSING PRICE DETERMINANTS ANALYSIS")
@@ -153,5 +169,6 @@ def main():
     print_regression_analysis(analysis_df)
 
 
+# Only run the analysis automatically when this file is executed directly.
 if __name__ == "__main__":
     main()
