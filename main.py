@@ -1,14 +1,157 @@
 import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+import statsmodels.api as sm
+from scipy.stats import pearsonr
 
-consumer_confidence_df = pd.read_csv("Consumer Confidence.csv")
-delinquency_df = pd.read_csv("Deliquency.csv")
-housing_price_index_df = pd.read_csv("Housing Price Index.csv")
-unemployment_rate_df = pd.read_csv("Unemployment Rate.csv")
-zillow_housing_df = pd.read_csv("Zillow Housing Data.csv")
 
+DATE_COLUMN = "observation_date"
+TARGET_COLUMN = "housing_price_index_pct_change"
+PREDICTOR_COLUMNS = [
+    "delinquency_rate_pct_change",
+    "unemployment_rate_pct_change",
+    "consumer_confidence_pct_change",
+]
+DISPLAY_NAMES = {
+    "housing_price_index_pct_change": "Housing Price Index",
+    "delinquency_rate_pct_change": "Delinquency Rate",
+    "unemployment_rate_pct_change": "Unemployment Rate",
+    "consumer_confidence_pct_change": "Consumer Confidence Index",
+}
+
+
+def load_quarterly_series(path, raw_value_column, renamed_value_column):
+    df = pd.read_csv(path)
+    df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN])
+
+    return (
+        df[[DATE_COLUMN, raw_value_column]]
+        .rename(columns={raw_value_column: renamed_value_column})
+        .sort_values(DATE_COLUMN)
+    )
+
+
+def build_analysis_dataframe():
+    housing_price_index_df = load_quarterly_series(
+        "Housing Price Index.csv",
+        "USSTHPI_PCH",
+        TARGET_COLUMN,
+    )
+    delinquency_df = load_quarterly_series(
+        "Deliquency.csv",
+        "DRSFRMACBS_PCH",
+        "delinquency_rate_pct_change",
+    )
+    unemployment_rate_df = load_quarterly_series(
+        "Unemployment Rate.csv",
+        "UNRATE_PCH",
+        "unemployment_rate_pct_change",
+    )
+    consumer_confidence_df = load_quarterly_series(
+        "Consumer Confidence.csv",
+        "USACSCICP02STSAM_PCH",
+        "consumer_confidence_pct_change",
+    )
+
+    analysis_df = housing_price_index_df.merge(
+        delinquency_df,
+        on=DATE_COLUMN,
+        how="inner",
+    ).merge(
+        unemployment_rate_df,
+        on=DATE_COLUMN,
+        how="inner",
+    ).merge(
+        consumer_confidence_df,
+        on=DATE_COLUMN,
+        how="inner",
+    )
+
+    return analysis_df
+
+
+def print_summary_stats(df):
+    print("\nSUMMARY STATISTICS")
+    print("-" * 80)
+
+    summary_rows = []
+    for column in [TARGET_COLUMN] + PREDICTOR_COLUMNS:
+        summary_rows.append(
+            {
+                "Variable": DISPLAY_NAMES[column],
+                "Mean": df[column].mean(),
+                "Standard Deviation": df[column].std(),
+                "Min": df[column].min(),
+                "Max": df[column].max(),
+            }
+        )
+
+    summary_df = pd.DataFrame(summary_rows)
+    print(summary_df.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
+
+
+def print_correlation_analysis(df):
+    print("\nPEARSON CORRELATION ANALYSIS")
+    print("-" * 80)
+    print(
+        f"Comparing each predictor to {DISPLAY_NAMES[TARGET_COLUMN]} "
+        f"({TARGET_COLUMN})."
+    )
+
+    correlation_rows = []
+    for predictor in PREDICTOR_COLUMNS:
+        correlation_coefficient, p_value = pearsonr(df[predictor], df[TARGET_COLUMN])
+        correlation_rows.append(
+            {
+                "Variable": DISPLAY_NAMES[predictor],
+                "Pearson r": correlation_coefficient,
+                "p-value": p_value,
+            }
+        )
+
+    correlation_df = pd.DataFrame(correlation_rows)
+    print(correlation_df.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
+
+
+def print_regression_analysis(df):
+    print("\nREGRESSION ANALYSIS")
+    print("-" * 80)
+
+    X = sm.add_constant(df[PREDICTOR_COLUMNS])
+    y = df[TARGET_COLUMN]
+
+    model = sm.OLS(y, X).fit()
+
+    coefficient_rows = []
+    for parameter_name in model.params.index:
+        label = "Intercept" if parameter_name == "const" else DISPLAY_NAMES[parameter_name]
+        coefficient_rows.append(
+            {
+                "Variable": label,
+                "Coefficient (beta)": model.params[parameter_name],
+                "p-value": model.pvalues[parameter_name],
+            }
+        )
+
+    coefficients_df = pd.DataFrame(coefficient_rows)
+    print(coefficients_df.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
+    print(f"\nR-squared: {model.rsquared:.4f}")
+    print(f"Adjusted R-squared: {model.rsquared_adj:.4f}")
+
+
+def main():
+    analysis_df = build_analysis_dataframe()
+
+    print("HOUSING PRICE DETERMINANTS ANALYSIS")
+    print("=" * 80)
+    print(
+        f"Observations: {len(analysis_df)} quarterly rows "
+        f"from {analysis_df[DATE_COLUMN].min().date()} "
+        f"to {analysis_df[DATE_COLUMN].max().date()}"
+    )
+
+    print_summary_stats(analysis_df)
+    print_correlation_analysis(analysis_df)
+    print_regression_analysis(analysis_df)
+
+
+if __name__ == "__main__":
+    main()
