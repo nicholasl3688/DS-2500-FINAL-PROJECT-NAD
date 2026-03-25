@@ -3,7 +3,7 @@ import statsmodels.api as sm
 from scipy.stats import pearsonr
 
 
-# Centralize the column names used across the analysis so they are easy to reuse and update.
+# Declare column names for easier reading and reusing
 DATE_COLUMN = "observation_date"
 TARGET_COLUMN = "housing_price_index_pct_change"
 PREDICTOR_COLUMNS = [
@@ -11,7 +11,7 @@ PREDICTOR_COLUMNS = [
     "unemployment_rate_pct_change",
     "consumer_confidence_pct_change",
 ]
-# Use cleaner display labels when printing tables to the terminal.
+# cleaner labels for printing
 DISPLAY_NAMES = {
     "housing_price_index_pct_change": "Housing Price Index",
     "delinquency_rate_pct_change": "Delinquency Rate",
@@ -21,7 +21,7 @@ DISPLAY_NAMES = {
 
 
 def load_quarterly_series(path, raw_value_column, renamed_value_column):
-    # Load one quarterly dataset, convert the date column, and standardize the metric name.
+    '''Load one quarterly dataset, convert the date column, and standardize the metric name.'''
     df = pd.read_csv(path)
     df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN])
 
@@ -33,8 +33,8 @@ def load_quarterly_series(path, raw_value_column, renamed_value_column):
 
 
 def build_analysis_dataframe():
-    # Load each quarterly percent-change series and rename the raw FRED-style columns
-    # to analysis-friendly names that we can reference consistently later.
+    '''Load each quarterly percent-change series and rename the raw FRED-style columns
+    to analysis-friendly names that we can reference consistently later.'''
     housing_price_index_df = load_quarterly_series(
         "Housing Price Index.csv",
         "USSTHPI_PCH",
