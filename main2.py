@@ -8,10 +8,19 @@ from sklearn.metrics import r2_score, mean_squared_error
 # -----------------------------------------------------------------------
 # LOAD & MERGE
 # -----------------------------------------------------------------------
-hpi    = pd.read_csv("Housing Price Index.csv",  parse_dates=["observation_date"])
-delinq = pd.read_csv("Deliquency.csv",           parse_dates=["observation_date"])
-unemp  = pd.read_csv("Unemployment Rate.csv",    parse_dates=["observation_date"])
-conf   = pd.read_csv("Consumer Confidence.csv",  parse_dates=["observation_date"])
+base = "Updated Data/"
+
+hpi    = pd.read_csv(base + "HousingPrices.csv",       parse_dates=["observation_date"])
+delinq = pd.read_csv(base + "Delinquency.csv",         parse_dates=["observation_date"])
+unemp  = pd.read_csv(base + "UnemploymentRate.csv",    parse_dates=["observation_date"])
+conf   = pd.read_csv(base + "ConsumerConfidence.csv",  parse_dates=["observation_date"])
+
+print("COLUMN NAMES")
+print("-" * 60)
+print(f"  HousingPrices.csv:      {list(hpi.columns)}")
+print(f"  Delinquency.csv:        {list(delinq.columns)}")
+print(f"  UnemploymentRate.csv:   {list(unemp.columns)}")
+print(f"  ConsumerConfidence.csv: {list(conf.columns)}")
 
 df = (hpi.merge(delinq, on="observation_date")
          .merge(unemp,  on="observation_date")
@@ -20,9 +29,9 @@ df = (hpi.merge(delinq, on="observation_date")
          .reset_index(drop=True))
 
 # -----------------------------------------------------------------------
-# TRAIN / TEST SPLIT  (chronological — train < 2020, test >= 2020)
+# TRAIN / TEST SPLIT  (chronological — train < 2014, test >= 2014)
 # -----------------------------------------------------------------------
-cutoff = pd.Timestamp("2020-01-01")
+cutoff = pd.Timestamp("2014-01-01")
 train = df[df["observation_date"] < cutoff]
 test  = df[df["observation_date"] >= cutoff]
 
@@ -32,7 +41,7 @@ target   = "USSTHPI_PCH"
 X_train, y_train = train[features].values, train[target].values
 X_test,  y_test  = test[features].values,  test[target].values
 
-print("HOUSING PRICE INDEX — LINEAR REGRESSION")
+print("\nHOUSING PRICE INDEX — LINEAR REGRESSION")
 print("=" * 60)
 print(f"Train: {len(train)} quarters  ({train['observation_date'].min().date()} – {train['observation_date'].max().date()})")
 print(f"Test:  {len(test)} quarters  ({test['observation_date'].min().date()} – {test['observation_date'].max().date()})")
@@ -60,7 +69,7 @@ mse      = mean_squared_error(y_test, y_pred_test)
 rmse     = np.sqrt(mse)
 train_r2 = r2_score(y_train, y_pred_train)
 
-print("\nTEST SET RESULTS (2020 Q1 – 2025 Q1)")
+print("\nTEST SET RESULTS (2014 Q1 – 2019 Q4)")
 print("-" * 60)
 print(f"  R²:                   {r2:.4f}")
 print(f"  Adjusted R²:          {adj_r2:.4f}")
@@ -81,7 +90,7 @@ for label, coef in zip(labels, model.coef_):
 # -----------------------------------------------------------------------
 # EXPORT RESULTS TO CSV
 # -----------------------------------------------------------------------
-output_filename = "predictions_2020_2025.csv"
+output_filename = "predictions_2014_2019.csv"
 with open(output_filename, "w") as f:
     f.write("date,predicted_housing_price_pct_change,actual_housing_price_pct_change\n")
     for date, pred, actual in zip(test["observation_date"], y_pred_test, y_test):
@@ -100,7 +109,7 @@ ax.plot(test["observation_date"], y_test,
 ax.plot(test["observation_date"], y_pred_test,
         label="Predicted", marker="x", linestyle="--", linewidth=2)
 
-ax.set_title("Housing Price Index % Change: Predicted vs Actual (2020–2025)", fontsize=13)
+ax.set_title("Housing Price Index % Change: Predicted vs Actual (2014–2019)", fontsize=13)
 ax.set_xlabel("Date")
 ax.set_ylabel("Quarterly % Change")
 ax.legend()
