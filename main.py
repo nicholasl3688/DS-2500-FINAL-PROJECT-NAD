@@ -1,6 +1,8 @@
+import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 from scipy.stats import pearsonr
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
 
 # Declare column names for easier reading and reusing
@@ -128,28 +130,29 @@ def print_regression_analysis(df):
     print("\nREGRESSION ANALYSIS")
     print("-" * 80)
 
-    X = sm.add_constant(df[PREDICTOR_COLUMNS])
-    y = df[TARGET_COLUMN]
+    X = df[PREDICTOR_COLUMNS].values
+    y = df[TARGET_COLUMN].values
 
-    model = sm.OLS(y, X).fit()
+    model = LinearRegression()
+    model.fit(X, y)
+    y_pred = model.predict(X)
+
+    r2 = r2_score(y, y_pred)
+    mse = mean_squared_error(y, y_pred)
+    n, p = X.shape
+    adj_r2 = 1 - (1 - r2) * (n - 1) / (n - p - 1)
 
     # Collect the most important regression outputs for each parameter so the
-    # printed results focus on coefficient direction, magnitude, and significance.
-    coefficient_rows = []
-    for parameter_name in model.params.index:
-        label = "Intercept" if parameter_name == "const" else DISPLAY_NAMES[parameter_name]
-        coefficient_rows.append(
-            {
-                "Variable": label,
-                "Coefficient (beta)": model.params[parameter_name],
-                "p-value": model.pvalues[parameter_name],
-            }
-        )
+    # printed results focus on coefficient direction and magnitude.
+    coefficient_rows = [{"Variable": "Intercept", "Coefficient (beta)": model.intercept_}]
+    for predictor, coef in zip(PREDICTOR_COLUMNS, model.coef_):
+        coefficient_rows.append({"Variable": DISPLAY_NAMES[predictor], "Coefficient (beta)": coef})
 
     coefficients_df = pd.DataFrame(coefficient_rows)
     print(coefficients_df.to_string(index=False, float_format=lambda value: f"{value:.4f}"))
-    print(f"\nR-squared: {model.rsquared:.4f}")
-    print(f"Adjusted R-squared: {model.rsquared_adj:.4f}")
+    print(f"\nR-squared:          {r2:.4f}")
+    print(f"Adjusted R-squared: {adj_r2:.4f}")
+    print(f"MSE:                {mse:.4f}")
 
 
 def main():
