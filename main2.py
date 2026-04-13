@@ -10,10 +10,11 @@ from sklearn.metrics import r2_score, mean_squared_error
 # -----------------------------------------------------------------------
 base = "Updated Data/"
 
-hpi    = pd.read_csv(base + "HousingPrices.csv",       parse_dates=["observation_date"])
+hpi    = pd.read_csv(base + "HousingPrices.csv",      parse_dates=["observation_date"])
 delinq = pd.read_csv(base + "Delinquency.csv",         parse_dates=["observation_date"])
 unemp  = pd.read_csv(base + "UnemploymentRate.csv",    parse_dates=["observation_date"])
 conf   = pd.read_csv(base + "ConsumerConfidence.csv",  parse_dates=["observation_date"])
+mort   = pd.read_csv(base + "MortgageRates.csv",       parse_dates=["observation_date"])
 
 print("COLUMN NAMES")
 print("-" * 60)
@@ -21,10 +22,12 @@ print(f"  HousingPrices.csv:      {list(hpi.columns)}")
 print(f"  Delinquency.csv:        {list(delinq.columns)}")
 print(f"  UnemploymentRate.csv:   {list(unemp.columns)}")
 print(f"  ConsumerConfidence.csv: {list(conf.columns)}")
+print(f"  MortgageRates.csv:      {list(mort.columns)}")
 
 df = (hpi.merge(delinq, on="observation_date")
          .merge(unemp,  on="observation_date")
          .merge(conf,   on="observation_date")
+         .merge(mort,   on="observation_date")
          .sort_values("observation_date")
          .reset_index(drop=True))
 
@@ -35,13 +38,13 @@ cutoff = pd.Timestamp("2014-01-01")
 train = df[df["observation_date"] < cutoff]
 test  = df[df["observation_date"] >= cutoff]
 
-features = ["DRSFRMACBS_PCH", "UNRATE_PCH", "USACSCICP02STSAM_PCH"]
+features = ["DRSFRMACBS_PCH", "UNRATE_PCH", "USACSCICP02STSAM_PCH", "MORTGAGE30US_PCH"]
 target   = "USSTHPI_PCH"
 
 X_train, y_train = train[features].values, train[target].values
 X_test,  y_test  = test[features].values,  test[target].values
 
-print("\nHOUSING PRICE INDEX — LINEAR REGRESSION")
+print("\nHOUSING PRICE INDEX % CHANGE — LINEAR REGRESSION")
 print("=" * 60)
 print(f"Train: {len(train)} quarters  ({train['observation_date'].min().date()} – {train['observation_date'].max().date()})")
 print(f"Test:  {len(test)} quarters  ({test['observation_date'].min().date()} – {test['observation_date'].max().date()})")
@@ -80,23 +83,21 @@ print(f"  Train R² (in-sample): {train_r2:.4f}")
 # -----------------------------------------------------------------------
 # MODEL COEFFICIENTS
 # -----------------------------------------------------------------------
+labels = ["Delinquency Rate %Δ", "Unemployment Rate %Δ", "Consumer Confidence %Δ", "Mortgage Rate %Δ"]
+
 print("\nMODEL COEFFICIENTS")
 print("-" * 60)
-labels = ["Delinquency Rate %Δ", "Unemployment Rate %Δ", "Consumer Confidence %Δ"]
 print(f"  {'Intercept':<30} {model.intercept_:>10.4f}")
 for label, coef in zip(labels, model.coef_):
     print(f"  {label:<30} {coef:>10.4f}")
 
 # -----------------------------------------------------------------------
-# EXPORT RESULTS TO CSV
+# FEATURE WEIGHTS (training set)
 # -----------------------------------------------------------------------
-output_filename = "predictions_2014_2019.csv"
-with open(output_filename, "w") as f:
-    f.write("date,predicted_housing_price_pct_change,actual_housing_price_pct_change\n")
-    for date, pred, actual in zip(test["observation_date"], y_pred_test, y_test):
-        f.write(f"{date.date()},{pred:.6f},{actual:.6f}\n")
-
-print(f"\nResults saved to {output_filename}")
+print("\nFEATURE WEIGHTS (training set)")
+print("-" * 60)
+for label, coef in zip(labels, model.coef_):
+    print(f"  {label:<30} {coef:>10.4f}")
 
 # -----------------------------------------------------------------------
 # PLOT — PREDICTED VS ACTUAL
