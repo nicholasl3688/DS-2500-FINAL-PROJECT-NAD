@@ -6,7 +6,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
 
 
-def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq=0):
+def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq=0,
+              drop_delinquency=False, drop_unemployment=False, drop_consumer_conf=False,
+              drop_mortgage=False, drop_nasdaq=False):
 
     # -----------------------------------------------------------------------
     # LOAD & MERGE
@@ -59,7 +61,16 @@ def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq
     train = df[df["observation_date"] < cutoff]
     test  = df[df["observation_date"] >= cutoff]
 
-    features = ["DRSFRMACBS_PCH", "UNRATE_PCH", "USACSCICP02STSAM_PCH", "MORTGAGE30US_PCH", "NASDAQCOM_PCH"]
+    all_features = [
+        ("DRSFRMACBS_PCH",       "Delinquency Rate %Δ",    drop_delinquency),
+        ("UNRATE_PCH",           "Unemployment Rate %Δ",   drop_unemployment),
+        ("USACSCICP02STSAM_PCH", "Consumer Confidence %Δ", drop_consumer_conf),
+        ("MORTGAGE30US_PCH",     "Mortgage Rate %Δ",       drop_mortgage),
+        ("NASDAQCOM_PCH",        "NASDAQ %Δ",              drop_nasdaq),
+    ]
+    features = [col   for col, _, drop in all_features if not drop]
+    labels   = [label for _,  label, drop in all_features if not drop]
+    dropped  = [label for _,  label, drop in all_features if drop]
     target   = "USSTHPI_PCH"
 
     X_train, y_train = train[features].values, train[target].values
@@ -69,6 +80,8 @@ def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq
     print("=" * 60)
     print(f"  Lags: delinquency={delinquency}, unemployment={unemployment}, "
           f"consumer_conf={consumer_conf}, mortgage={mortgage}, nasdaq={nasdaq}")
+    if dropped:
+        print(f"  Dropped: {', '.join(dropped)}")
     print(f"  Train: {len(train)} quarters  ({train['observation_date'].min().date()} – {train['observation_date'].max().date()})")
     print(f"  Test:  {len(test)} quarters  ({test['observation_date'].min().date()} – {test['observation_date'].max().date()})")
 
@@ -106,8 +119,6 @@ def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq
     # -----------------------------------------------------------------------
     # MODEL COEFFICIENTS
     # -----------------------------------------------------------------------
-    labels = ["Delinquency Rate %Δ", "Unemployment Rate %Δ", "Consumer Confidence %Δ", "Mortgage Rate %Δ", "NASDAQ %Δ"]
-
     print("\nMODEL COEFFICIENTS")
     print("-" * 60)
     print(f"  {'Intercept':<30} {model.intercept_:>10.4f}")
