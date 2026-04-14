@@ -116,20 +116,18 @@ def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq
     print(f"  RMSE:                 {rmse:.4f}")
     print(f"  Train R² (in-sample): {train_r2:.4f}")
 
-    # -----------------------------------------------------------------------
-    # MODEL COEFFICIENTS
-    # -----------------------------------------------------------------------
-    print("\nMODEL COEFFICIENTS")
+    print("\nPEARSON CORRELATION (each feature vs target, training set)")
     print("-" * 60)
-    print(f"  {'Intercept':<30} {model.intercept_:>10.4f}")
-    for label, coef in zip(labels, model.coef_):
-        print(f"  {label:<30} {coef:>10.4f}")
+    for col, label in zip(features, labels):
+        r = np.corrcoef(train[col].values, train[target].values)[0, 1]
+        print(f"  {label:<30} r = {r:.4f}")
 
     # -----------------------------------------------------------------------
-    # FEATURE WEIGHTS (training set)
+    # MODEL COEFFICIENTS / FEATURE WEIGHTS
     # -----------------------------------------------------------------------
-    print("\nFEATURE WEIGHTS (training set)")
+    print("\nMODEL COEFFICIENTS / FEATURE WEIGHTS")
     print("-" * 60)
+    print(f"  {'Intercept':<30} {model.intercept_:>10.4f}")
     for label, coef in zip(labels, model.coef_):
         print(f"  {label:<30} {coef:>10.4f}")
 
