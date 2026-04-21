@@ -123,6 +123,21 @@ def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq
         print(f"  {label:<30} r = {r:.4f}")
 
     # -----------------------------------------------------------------------
+    # MEAN PERCENT CHANGE (per feature + target, full dataset)
+    # -----------------------------------------------------------------------
+    print("\nDESCRIPTIVE STATS (full dataset)")
+    print("-" * 60)
+    for col, label in zip(features, labels):
+        mean   = df[col].mean()
+        median = df[col].median()
+        mode   = df[col].mode()[0]
+        print(f"  {label:<30} mean = {mean:>7.4f}  median = {median:>7.4f}  mode = {mode:>7.4f}")
+    hpi_mean   = df["USSTHPI_PCH"].mean()
+    hpi_median = df["USSTHPI_PCH"].median()
+    hpi_mode   = df["USSTHPI_PCH"].mode()[0]
+    print(f"  {'Housing Price Index %Δ':<30} mean = {hpi_mean:>7.4f}  median = {hpi_median:>7.4f}  mode = {hpi_mode:>7.4f}")
+
+    # -----------------------------------------------------------------------
     # MODEL COEFFICIENTS / FEATURE WEIGHTS
     # -----------------------------------------------------------------------
     print("\nMODEL COEFFICIENTS / FEATURE WEIGHTS")

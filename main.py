@@ -1,4 +1,4 @@
-from main2 import run_model
+from model import run_model
 
 # Call run_model() with per-variable lags (in quarters).
 # Default for each variable is 0 (no lag).
