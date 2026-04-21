@@ -173,6 +173,49 @@ def run_model(delinquency=0, unemployment=0, consumer_conf=0, mortgage=0, nasdaq
     plt.tight_layout()
     plt.show()
 
+    # -----------------------------------------------------------------------
+    # PLOT — CORRELATION HEATMAP (each feature vs housing price index only)
+    # -----------------------------------------------------------------------
+    corr_values = [[df[col].corr(df[target])] for col in features]
+    corr_heatmap = pd.DataFrame(corr_values, index=labels, columns=["Housing Price %Δ"])
+
+    fig2, ax2 = plt.subplots(figsize=(4, max(3, len(labels) * 0.6 + 1)))
+    sns.heatmap(corr_heatmap, annot=True, fmt=".2f", cmap="RdBu_r",
+                center=0, vmin=-1, vmax=1, linewidths=0.5, ax=ax2)
+    ax2.set_title("Pearson Correlation — Each Feature vs Housing Price %Δ", fontsize=11)
+    plt.tight_layout()
+    plt.show()
+
+    # -----------------------------------------------------------------------
+    # PLOT — TIME SERIES (all variables on one plot)
+    # -----------------------------------------------------------------------
+    fig3, ax3 = plt.subplots(figsize=(11, 5))
+    for col, lbl in zip(features + [target], labels + ["Housing Price %Δ"]):
+        ax3.plot(df["observation_date"], df[col], linewidth=1.5, label=lbl)
+    ax3.axvline(pd.Timestamp("2014-01-01"), color="black", linestyle="--",
+                linewidth=1, label="Train/Test Split")
+    ax3.set_title("Feature & Target Time Series (full dataset)", fontsize=12)
+    ax3.set_xlabel("Date")
+    ax3.set_ylabel("Quarterly % Change")
+    ax3.legend(fontsize=8)
+    plt.tight_layout()
+    plt.show()
+
+    # -----------------------------------------------------------------------
+    # PLOT — RESIDUALS
+    # -----------------------------------------------------------------------
+    residuals = y_test - y_pred_test
+
+    fig4, ax4 = plt.subplots(figsize=(11, 4))
+    ax4.plot(test["observation_date"], residuals, marker="o", linewidth=2, label="Residual")
+    ax4.axhline(0, color="red", linestyle="--", linewidth=1)
+    ax4.set_title("Residuals — Test Period (2014–2019)", fontsize=12)
+    ax4.set_xlabel("Date")
+    ax4.set_ylabel("Residual (Actual − Predicted)")
+    ax4.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 if __name__ == "__main__":
     run_model()
